@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Iterator
 
 from google.api_core.exceptions import NotFound, PreconditionFailed
 from google.cloud import storage

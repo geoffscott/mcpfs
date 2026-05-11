@@ -3,7 +3,7 @@ name = "mcpfs"
 version = "0.1.0"
 description = "Remote MCP server exposing filesystem semantics over Google Cloud Storage."
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "Geoff Scott" }]
 dependencies = [
@@ -36,12 +36,12 @@ packages = ["src/mcpfs"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "S", "RUF"]
 ignore = ["S101"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.11"
 strict = true

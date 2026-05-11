@@ -19,7 +19,6 @@ from .gcs import GcsBackend
 from .identity import Caller, parse_caller
 from .paths import normalize, normalize_prefix
 
-
 log = mcpfs_logging.get_logger("mcpfs")
 
 
