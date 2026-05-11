@@ -1,10 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
 from dataclasses import dataclass
-
-from google.api_core.exceptions import NotFound, PreconditionFailed
-from google.cloud import storage
 
 
 class ObjectNotFoundError(LookupError):
@@ -37,12 +33,23 @@ class ListEntry:
     updated: str | None
 
 
+@dataclass(frozen=True)
+class ListPage:
+    entries: list[ListEntry]
+    next_cursor: str | None
+
+
 class GcsBackend:
     def __init__(self, bucket_name: str, max_object_bytes: int, list_page_size: int) -> None:
+        # Deferred imports: the google-cloud-storage SDK has heavy transitive
+        # dependencies (cryptography, grpc) we don't want loaded just to import
+        # the dataclasses defined above in unit tests.
+        from google.cloud import storage
+
         self._client = storage.Client()
         self._bucket = self._client.bucket(bucket_name)
         self._max_bytes = max_object_bytes
-        self._page_size = list_page_size
+        self._default_page_size = list_page_size
 
     def stat(self, name: str) -> ObjectStat:
         blob = self._bucket.get_blob(name)
@@ -74,6 +81,8 @@ class GcsBackend:
         content_type: str | None,
         if_generation_match: int | None,
     ) -> ObjectStat:
+        from google.api_core.exceptions import PreconditionFailed
+
         if len(data) > self._max_bytes:
             raise ObjectTooLargeError(
                 f"payload size {len(data)} exceeds limit {self._max_bytes}"
@@ -98,6 +107,8 @@ class GcsBackend:
         )
 
     def delete(self, name: str, if_generation_match: int | None) -> None:
+        from google.api_core.exceptions import NotFound, PreconditionFailed
+
         blob = self._bucket.blob(name)
         try:
             blob.delete(if_generation_match=if_generation_match)
@@ -106,20 +117,39 @@ class GcsBackend:
         except PreconditionFailed as e:
             raise PreconditionFailedError(str(e)) from e
 
-    def list(self, prefix: str, recursive: bool) -> Iterator[ListEntry]:
+    def list(
+        self,
+        prefix: str,
+        recursive: bool,
+        page_size: int | None = None,
+        cursor: str | None = None,
+    ) -> ListPage:
         delimiter = None if recursive else "/"
+        effective_size = page_size or self._default_page_size
         iterator = self._client.list_blobs(
             self._bucket,
             prefix=prefix or None,
             delimiter=delimiter,
-            page_size=self._page_size,
+            page_size=effective_size,
+            page_token=cursor,
+            max_results=effective_size,
         )
-        for blob in iterator:
-            yield ListEntry(
-                name=blob.name,
-                kind="file",
-                size=int(blob.size or 0),
-                updated=blob.updated.isoformat() if blob.updated else None,
-            )
+        entries: list[ListEntry] = []
+        # Consume exactly one page; iterator.next_page_token is then populated.
+        page = next(iterator.pages, None)
+        if page is not None:
+            for blob in page:
+                entries.append(
+                    ListEntry(
+                        name=blob.name,
+                        kind="file",
+                        size=int(blob.size or 0),
+                        updated=blob.updated.isoformat() if blob.updated else None,
+                    )
+                )
         for sub_prefix in getattr(iterator, "prefixes", ()) or ():
-            yield ListEntry(name=sub_prefix, kind="prefix", size=None, updated=None)
+            entries.append(
+                ListEntry(name=sub_prefix, kind="prefix", size=None, updated=None)
+            )
+        next_cursor = iterator.next_page_token or None
+        return ListPage(entries=entries, next_cursor=next_cursor)

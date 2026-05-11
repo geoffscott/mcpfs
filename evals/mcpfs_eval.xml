@@ -1,0 +1,50 @@
+<evaluation>
+  <!--
+    mcpfs MCP server — evaluation set.
+    All questions are read-only and answerable using only fs_list, fs_stat,
+    and fs_read against a bucket seeded by evals/seed.sh.
+
+    Verification: simple string match against <answer>. All answers are case-
+    sensitive and trim-sensitive.
+  -->
+  <qa_pair>
+    <question>Read the file at the root path `README.txt`. The text mentions a semantic version number. What is that version number?</question>
+    <answer>1.0.0</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>List the files under the `notes/` prefix. Each is a markdown note that declares a `Status:` line. Find the note whose status is `blocked` and report the value of its `Owner:` line.</question>
+    <answer>carol</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>List the root of the bucket non-recursively. How many entries have kind='prefix'?</question>
+    <answer>5</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Read `data/inventory.csv`. The columns are `sku,qty`. What is the qty for the row whose sku is `A2`?</question>
+    <answer>25</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Read `data/inventory.csv`. Sum the `qty` column across every row. What is the total?</question>
+    <answer>42</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>List the files under the `logs/` prefix and read each one. Each log file contains a line of the form `ERROR xN`. What is the sum of N across all log files in that prefix?</question>
+    <answer>54</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Read `config/app.json` (a JSON document). What is the value of the `region` field?</question>
+    <answer>us-central1</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>List everything under the `data/` prefix recursively. How many entries with kind='file' are returned?</question>
+    <answer>2</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Call `fs_read` on `archive/old.bin`. What value does the response return for the `encoding` field?</question>
+    <answer>base64</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Call `fs_stat` on `README.txt`. What is the value of the `size` field (in bytes)?</question>
+    <answer>31</answer>
+  </qa_pair>
+</evaluation>
